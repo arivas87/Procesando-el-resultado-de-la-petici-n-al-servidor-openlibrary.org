@@ -30,14 +30,38 @@ class ViewController: UIViewController {
         let url = NSURL(string: "https://openlibrary.org/api/books?jscmd=data&format=json&bibkeys=ISBN:" + textField.text!)
         
         do {
-            let respuesta = try String(contentsOfURL: url!, encoding: NSUTF8StringEncoding)
+            let respuesta = try NSJSONSerialization.JSONObjectWithData(NSData(contentsOfURL: url!)!, options: .MutableLeaves) as? [String: AnyObject]
             
-            print("Respuesta: \(respuesta)")
-            
-            if respuesta != "{}" {
+            if respuesta != nil && !respuesta!.isEmpty {
+                
+                var autores = respuesta!["ISBN:\(textField.text!)"]!["authors"] as? [[String: String]]
+                if autores != nil {
+                    
+                    autoresLabel.text = autores![0]["name"]!
+                    autores?.removeAtIndex(0)
+                    
+                    for autor in autores! {
+                        autoresLabel.text = "\(autoresLabel.text!), \(autor["name"]!)"
+                    }
+                }
+                
+                let título = respuesta!["ISBN:\(textField.text!)"]!["title"] as? String
+                if título != nil {
+                    títuloLabel.text = título!
+                }
+                
+                let cover = respuesta!["ISBN:\(textField.text!)"]!["cover"] as? [String: String]
+                
+                if cover != nil {
+                    let imagenUrl = cover!["medium"]! as String
+                    
+                    portadaImage.image = UIImage(data: NSData(contentsOfURL: NSURL(string: imagenUrl)!)!)
+                } else {
+                    portadaImage.image = nil
+                }
 
             } else {
-                let alert = UIAlertController(title: "Error", message: "Hay problemas con la conexión a Internet. Inténtelo de nuevo más tarde.", preferredStyle: UIAlertControllerStyle.Alert)
+                let alert = UIAlertController(title: "Error", message: "No hay ningún libro con ese ISBN", preferredStyle: UIAlertControllerStyle.Alert)
                 alert.addAction(UIAlertAction(title: "Aceptar", style: UIAlertActionStyle.Default, handler: nil))
                 self.presentViewController(alert, animated: true, completion: nil)
             }
